@@ -10,9 +10,11 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import br.com.fra.brasileiraoapi.dto.PartidaGoogleDTO;
 
+@Service
 public class ScrapingUtil {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScrapingUtil.class);
@@ -42,17 +44,8 @@ public class ScrapingUtil {
 	private static final String VISITANTE = "visitante";
 	private static final String PENALTIES = "Pênaltis";
 
-	public static void main(String[] args) {
-		String partidaPesquisa = "corinthiansxpalmeiras 08/08/2020";
-		String url = BASE_URL_GOOGLE + partidaPesquisa + COMPLEMENTO_URL_GOOGLE;
-		
-		ScrapingUtil scraping = new ScrapingUtil();
-		scraping.obtemInformacoesPartida(url);
-	}
-	
 	public PartidaGoogleDTO obtemInformacoesPartida(String url) {
 		PartidaGoogleDTO partida = new PartidaGoogleDTO();
-		
 		Document document = null;
 		
 		try {
@@ -62,50 +55,62 @@ public class ScrapingUtil {
 			LOGGER.info("Titulo da Pagina {}", title.toUpperCase());
 			
 			StatusPartida statusPartida = obtemStatusPartida(document);
+			partida.setStatusPartida(statusPartida.toString());
+
 			if (statusPartida != StatusPartida.PARTIDA_NAO_INICIADA) {
-				String tempoPartida = obtemTempoPartida(document);	
+				String tempoPartida = obtemTempoPartida(document);
+				partida.setTempoPartida(tempoPartida);	
 				LOGGER.info("Tempo da Partida: {}", tempoPartida);
 
 				Integer placarEquipeCasa = recuperaPlacarEquipe(document, PLACAR_EQUIPE_CASA);
+				partida.setPlacarEquipeCasa(placarEquipeCasa);
 				LOGGER.info("Placar Equipe Casa: {}", placarEquipeCasa);
 
 				Integer placarEquipeVisitante = recuperaPlacarEquipe(document, PLACAR_EQUIPE_VISITANTE);
+				partida.setPlacarEquipeVisitante(placarEquipeVisitante);
 				LOGGER.info("Placar Equipe Visitante: {}", placarEquipeVisitante);
 
 				String golsEquipeCasa = recuperaGolsEquipe(document, GOLS_EQUIPE_CASA);
+				partida.setGolsEquipeCasa(golsEquipeCasa);
 				LOGGER.info("Gols Equipe Casa: {}", golsEquipeCasa);
 
 				String golsEquipeVisitante = recuperaGolsEquipe(document, GOLS_EQUIPE_VISITANTE);
+				partida.setGolsEquipeVisitante(golsEquipeVisitante);
 				LOGGER.info("Gols Equipe Visitante: {}", golsEquipeVisitante);
 
 				Integer placarEstendidoEquipeCasa = buscaPenalidades(document, CASA);
+				partida.setPlacarEstendidoEquipeCasa(placarEstendidoEquipeCasa.toString());
 				Integer placarEstendidoEquipeVisitante = buscaPenalidades(document, VISITANTE);
+				partida.setPlacarEstendidoEquipeVisitante(placarEstendidoEquipeVisitante.toString());
 				LOGGER.info("Placar Extendido equipe casa: {}", placarEstendidoEquipeCasa);
 				LOGGER.info("Placar Extendido equipe visitante: {}", placarEstendidoEquipeVisitante);
 			}
 			
 			String nomeEquipeCasa = obtemNomeEquipe(document, NOME_EQUIPE_CASA);
+			partida.setNomeEquipeCasa(nomeEquipeCasa);
 			String urlLogoEquipeCasa = obtemLogoEquipe(document, LOGO_EQUIPE_CASA);
+			partida.setUrlLogoEquipeCasa(urlLogoEquipeCasa);
 			LOGGER.info("Equipe da Casa: {}", nomeEquipeCasa);
 			LOGGER.info("URL Logo Equipe Casa: {}", urlLogoEquipeCasa);
 
 
 			String nomeEquipeVisitante = obtemNomeEquipe(document, NOME_EQUIPE_VISITANTE);
+			partida.setNomeEquipeVisitante(nomeEquipeVisitante);
 			String urlLogoEquipeVisitante = obtemLogoEquipe(document, LOGO_EQUIPE_VISITANTE);
+			partida.setUrlLogoEquipeVisitante(urlLogoEquipeVisitante);
 			LOGGER.info("Equipe Visitante: {}", nomeEquipeVisitante);
 			LOGGER.info("URL Logo Equipe Visitante: {}", urlLogoEquipeVisitante);
 			
 			LOGGER.info("Status da Partida: {}", statusPartida.toString());
-			
-			
+						
+			return partida;	
 		} catch (IOException e) {
 			LOGGER.error("ERRO AO TENTAR CONECTAR NO GOOGLE -> {}", e.getMessage());
 			e.printStackTrace();
 		}
 		
-		return partida;
-		
-		
+		return null;
+				
 	}
 	
 	public StatusPartida obtemStatusPartida(Document document) {
@@ -221,5 +226,18 @@ public class ScrapingUtil {
 		}
 
 		return valor;
+	}
+
+	public String montaUrlGoogle(String nomeEquipeCasa, String nomeEquipeVisitante, String data) {
+		try {
+			String equipeCasa = nomeEquipeCasa.replace(" ", "+").replace("-", "+");
+			String equipeVisitante = nomeEquipeVisitante.replace(" ", "+").replace("-", "+");
+
+			return BASE_URL_GOOGLE + equipeCasa + "+x+" + equipeVisitante + "+x+" + data + COMPLEMENTO_URL_GOOGLE;
+		} catch (Exception e) {
+			LOGGER.error("ERRO: {}", e.getMessage());
+		}
+
+		return null;
 	}
 }
